@@ -1,0 +1,14 @@
+.direnv
+.envrc
+/target
+/result
+js/node_modules/
+js/dist/
+
+
+
+# Added by cargo
+#
+# already existing elements were commented out
+
+#/target
