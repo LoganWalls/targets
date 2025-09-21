@@ -40,6 +40,37 @@
           strictDeps = true;
           nativeBuildInputs = buildDeps;
         };
+
+        makeScriptWriter = pkgs.writers.makeScriptWriter;
+        writeNuStdin = name: argsOrScript:
+          if lib.isAttrs argsOrScript && !lib.isDerivation argsOrScript
+          then
+            makeScriptWriter (argsOrScript
+              // {
+                interpreter = "${lib.getExe pkgs.nushell} --no-config-file --stdin";
+              })
+            name
+          else
+            makeScriptWriter {
+              interpreter = "${lib.getExe pkgs.nushell} --no-config-file --stdin";
+            }
+            name
+            argsOrScript;
+        writeNuStdinBin = name: writeNuStdin "/bin/${name}";
+
+        tintedConverterDeps = with pkgs; [pastel];
+        tintedConverter =
+          writeNuStdinBin "from-tinted-scheme"
+          {
+            # Add runtime deps to PATH for the script:
+            makeWrapperArgs = [
+              "--prefix"
+              "PATH"
+              ":"
+              (pkgs.lib.makeBinPath tintedConverterDeps)
+            ];
+          }
+          (builtins.readFile ./extra/from-tinted-scheme.nu);
       in {
         apps.${system}.default = let
           name = crate.pname or crate.name;
@@ -48,7 +79,10 @@
           type = "app";
           program = "${crate}${exe}";
         };
-        packages.${system}.default = crate;
+        packages.${system} = {
+          default = crate;
+          from-tinted-scheme = tintedConverter;
+        };
         checks.${system} = {inherit crate;};
         devShells.${system}.default = pkgs.mkShell {
           packages = with pkgs;
@@ -56,7 +90,7 @@
               toolchain
               rust-analyzer-unwrapped
             ]
-            ++ buildDeps;
+            ++ buildDeps ++ tintedConverterDeps;
           RUST_SRC_PATH = "${toolchain}/lib/rustlib/src/rust/library";
         };
       }

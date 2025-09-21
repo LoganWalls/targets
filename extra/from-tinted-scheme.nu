@@ -1,0 +1,73 @@
+#!/usr/bin/env -S nu --stdin
+
+def pastel_lighten [hex:string, amount:float] {
+  let out = (pastel color $hex | pastel lighten $amount | pastel format hex | str trim)
+  $out
+}
+
+def pastel_darken [hex:string, amount:float] {
+  let out = (pastel color $hex | pastel darken $amount | pastel format hex | str trim)
+  $out
+}
+
+def pastel_mix [hex1:string, hex2:string, frac:float] {
+  let out = (pastel color $hex1 | pastel mix $hex2 -f $frac | pastel format hex | str trim)
+  $out
+}
+
+# Uses heuristics to create missing base24 colors if they are missing from the input
+# (e.g. because it is a base16 theme)
+def ensure-base24 []: record -> record {
+  let rec = $in
+  mut out = $rec
+
+  # Backgrounds
+  if not ("base10" in ($out | columns)) {
+    let new = (pastel_darken $out.base00 0.25)
+    $out = ($out | insert base10 $new)
+  }
+  if not ("base11" in ($out | columns)) {
+    let new = (pastel_darken $out.base00 0.40)
+    $out = ($out | insert base11 $new)
+  }
+
+  # Bright accents from base08..base0D -> base12..base17
+  let pairs = [
+    ["base12" "base08" 0.30]
+    ["base13" "base09" 0.30]
+    ["base14" "base0A" 0.30]
+    ["base15" "base0B" 0.30]
+    ["base16" "base0C" 0.30]
+    ["base17" "base0D" 0.30]
+  ]
+  for p in $pairs {
+    let k24  = ($p | get 0)
+    let k16  = ($p | get 1)
+    let frac = ($p | get 2)
+    if (not ($k24 in ($out | columns))) and ($k16 in ($out | columns)) {
+      let new = (pastel_mix ($out | get $k16) "#ffffff" $frac)
+      $out = ($out | insert $k24 $new)
+    }
+  }
+
+  $out
+}
+
+def main [] {
+  let data = $in | from yaml
+
+  $data
+  | reject palette
+  | transpose key value
+  | update key {|r| "scheme-" + $r.key }
+  | append (
+    $data
+    | get palette
+    | ensure-base24
+    | transpose key value
+    | update key {|r| $r.key + "-hex" }
+    | update value {|r| $r.value | str trim -c "#" } 
+  )
+  | transpose -r -d
+  | to json
+}
