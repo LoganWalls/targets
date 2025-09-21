@@ -59,10 +59,25 @@ impl Target {
         }
 
         let status = std::process::Command::new(
-            hook.first()
-                .expect("script command should have at least one part"),
+            shellexpand::full(
+                hook.first()
+                    .expect("script command should have at least one part"),
+            )
+            .with_context(|| format!("Failed to expand variables in hook: {}", hook.join(" ")))?
+            .into_owned(),
         )
-        .args(hook.iter().skip(1))
+        .args(
+            hook.iter()
+                .skip(1)
+                .map(|h| {
+                    shellexpand::full(h)
+                        .with_context(|| {
+                            format!("Failed to expand variables in hook: {}", hook.join(" "))
+                        })
+                        .map(|s| s.into_owned())
+                })
+                .collect::<Result<Vec<_>>>()?,
+        )
         .status()
         .with_context(|| format!("Failed to execute hook {}", hook.join("")))?;
 
