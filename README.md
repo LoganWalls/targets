@@ -13,7 +13,6 @@ values that are decided at runtime.
 First, specify one or more targets in a configuration `toml` file:
 
 ```toml
-# config.toml
 [targets.ghostty]
 template = "$XDG_CONFIG_HOME/targets/templates/ghostty.mustache"
 out = "$XDG_CONFIG_HOME/ghostty/themes/base24"
@@ -22,19 +21,33 @@ hook = [
   "-se",
   "$XDG_CONFIG_HOME/targets/hooks/reload_ghostty.applescript",
 ]
+
+[targets.nvim]
+template = "$XDG_CONFIG_HOME/targets/templates/vim.mustache"
+out = "$XDG_CONFIG_HOME/nvim/colors/base24.vim"
+hook = [
+  "nvim",
+  "--server",
+  "~/.cache/nvim/server.pipe",
+  "--remote-send",
+  ":colorscheme base24<CR>",
+]
 ```
+
+
 
 Each target should have the following attributes: 
 - `template`: The mustache template to use.
-- `out`: The path to write populated template to.
+- `out`: The path to write populated template to. `targets` will create missing parent directories automatically.
 - `hook` (optional): A shell command to run after writing the populated template.
 
 By default, `targets` will read the configuration from `$XDG_CONFIG_HOME/targets/config.toml`,
 but you can also specify a configuration file at runtime by passing `--config [PATH]`.
 
 Next, specify some values in `json`, `yaml`, or `toml` format:
-```jsonc
-# values.json
+
+`values.json`:
+```json
 {
   "scheme-system": "base16",
   "scheme-name": "Rosé Pine",
@@ -78,7 +91,7 @@ Values can also be piped from `stdin`:
 cat values.json | targets --format json
 ```
 
-### Full list of options
+### Full list of CLI options
 ```
 Usage: targets [OPTIONS]
 
@@ -88,6 +101,38 @@ Options:
   -c, --config <FILE>    Path to the configuration file that should be used (defaults to "$XDG_CONFIG_HOME/targets/config.toml")
   -h, --help             Print help
   -V, --version          Print version
+```
+
+### Using base16 / base24 / tinted themes & templates
+[Chris Kempson](https://github.com/chriskempson/) and the maintainers of [Tinted Theming](https://github.com/tinted-theming/home)
+(together with many other individual contributors) have curated a collection of [color schemes](https://github.com/tinted-theming/schemes)
+and [templates](https://github.com/tinted-theming/home?tab=readme-ov-file#official-templates) for many different applications,
+based on the [base16](https://github.com/chriskempson/base16) and [base24](https://github.com/tinted-theming/base24/blob/main/styling.md) 
+specs. `targets` can use Tinted Theming templates directly: just download them and reference
+them as a `template` in your configuration. The Tinted Theming color schemes must be modified to work with 
+`targets`. This repository provides a script in [`extras/convert-tinted-scheme.nu`](./extra/convert-tinted-scheme.nu) 
+to perform this conversion. If a base16 color scheme is provided, the script will use heuristics to generate
+the missing colors to make it a base24 color scheme, so you can use any color
+scheme with base24 templates.
+
+To use the script, first install its dependencies: [`nushell`](https://www.nushell.sh/book/installation.html) and [`pastel`](https://github.com/sharkdp/pastel?tab=readme-ov-file#installation).
+If you are using nix, the script is available as a flake output (see nix instructions below).
+Then pipe a base16 or base24 yaml theme into the script:
+
+```sh
+cat rose-pine.yaml | convert-tinted-scheme.nu
+```
+
+or
+
+```sh
+curl -s https://raw.githubusercontent.com/tinted-theming/schemes/refs/heads/spec-0.11/base16/rose-pine.yaml | convert-tinted-scheme.nu
+```
+
+This means you can try out a new base16 or base24 color scheme to your system without changing your configuration:
+
+```sh
+curl -s https://raw.githubusercontent.com/tinted-theming/schemes/refs/heads/spec-0.11/base16/rose-pine.yaml | convert-tinted-scheme.nu | targets
 ```
 
 
@@ -105,6 +150,7 @@ To try out temporarily:
 nix shell 'github:LoganWalls/targets'
 ```
 
+Install via nix flakes:
 ```nix
 {
   inputs = {
@@ -124,10 +170,10 @@ nix shell 'github:LoganWalls/targets'
       system: let
         pkgs = nixpkgs.legacyPackages.${system};
         targets = inputs.targets.packages.${system}.default;
-        from-tinted-scheme = inputs.targets.packages.${system}.from-tinted-scheme;
+        convert-tinted-scheme = inputs.targets.packages.${system}.convert-tinted-scheme;
       in
         with pkgs; {
-          devShells.${system}.default = mkShell {packages = [ targets from-tinted-scheme ];};
+          devShells.${system}.default = mkShell {packages = [ targets convert-tinted-scheme ];};
         }
     );
 };
