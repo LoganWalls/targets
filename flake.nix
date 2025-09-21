@@ -60,7 +60,7 @@
 
         tintedConverterDeps = with pkgs; [pastel];
         tintedConverter =
-          writeNuStdinBin "from-tinted-scheme"
+          writeNuStdinBin "convert-tinted-scheme"
           {
             # Add runtime deps to PATH for the script:
             makeWrapperArgs = [
@@ -70,7 +70,7 @@
               (pkgs.lib.makeBinPath tintedConverterDeps)
             ];
           }
-          (builtins.readFile ./extra/from-tinted-scheme.nu);
+          (builtins.readFile ./extra/convert-tinted-scheme.nu);
       in {
         apps.${system}.default = let
           name = crate.pname or crate.name;
@@ -81,7 +81,7 @@
         };
         packages.${system} = {
           default = crate;
-          from-tinted-scheme = tintedConverter;
+          convert-tinted-scheme = tintedConverter;
         };
         checks.${system} = {inherit crate;};
         devShells.${system}.default = pkgs.mkShell {
