@@ -110,7 +110,7 @@ and [templates](https://github.com/tinted-theming/home?tab=readme-ov-file#offici
 based on the [base16](https://github.com/chriskempson/base16) and [base24](https://github.com/tinted-theming/base24/blob/main/styling.md) 
 specs. `targets` can use Tinted Theming templates directly: just download them and reference
 them as a `template` in your configuration. The Tinted Theming color schemes must be modified to work with 
-`targets`. This repository provides a script in [`extras/convert-tinted-scheme.nu`](./extra/convert-tinted-scheme.nu) 
+`targets`. This repository provides a script in [`extras/convert-tinted-scheme`](./extra/convert-tinted-scheme) 
 to perform this conversion. If a base16 color scheme is provided, the script will use heuristics to generate
 the missing colors to make it a base24 color scheme, so you can use any color
 scheme with base24 templates.
@@ -120,19 +120,19 @@ If you are using nix, the script is available as a flake output (see nix instruc
 Then pipe a base16 or base24 yaml theme into the script:
 
 ```sh
-cat rose-pine.yaml | convert-tinted-scheme.nu
+cat rose-pine.yaml | convert-tinted-scheme
 ```
 
 or
 
 ```sh
-curl -s https://raw.githubusercontent.com/tinted-theming/schemes/refs/heads/spec-0.11/base16/rose-pine.yaml | convert-tinted-scheme.nu
+curl -s https://raw.githubusercontent.com/tinted-theming/schemes/refs/heads/spec-0.11/base16/rose-pine.yaml | convert-tinted-scheme
 ```
 
 This means you can try out a new base16 or base24 color scheme to your system without changing your configuration:
 
 ```sh
-curl -s https://raw.githubusercontent.com/tinted-theming/schemes/refs/heads/spec-0.11/base16/rose-pine.yaml | convert-tinted-scheme.nu | targets
+curl -s https://raw.githubusercontent.com/tinted-theming/schemes/refs/heads/spec-0.11/base16/rose-pine.yaml | convert-tinted-scheme | targets
 ```
 
 

@@ -70,7 +70,7 @@
               (pkgs.lib.makeBinPath tintedConverterDeps)
             ];
           }
-          (builtins.readFile ./extra/convert-tinted-scheme.nu);
+          (builtins.readFile ./extra/convert-tinted-scheme);
       in {
         apps.${system}.default = let
           name = crate.pname or crate.name;

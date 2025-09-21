@@ -1,5 +1,50 @@
 #!/usr/bin/env -S nu --stdin
 
+let docstring = $"
+This script converts a base16 or base24 theme file.
+
+Input to the script should be a base16 or base24 
+color scheme in YAML format, piped to `stdin`. 
+
+The script will always output a base24 color scheme. 
+If the input is base16, it script will use heuristics 
+to generate the missing colors.
+
+Usage:
+  [base16/24 yaml content] | convert-tinted-scheme
+
+Examples:
+  cat scheme.yaml | convert-tinted-scheme
+  curl -s https://some-website/scheme.yaml | convert-tinted-scheme
+" | str trim
+
+
+def --wrapped main [
+    ...args
+  ]: string -> string {
+  let data = if (not (is-terminal --stdin)) {
+    $in | from yaml
+  } else { 
+    print $docstring
+    return
+  }
+
+  $data
+  | reject palette
+  | transpose key value
+  | update key {|r| "scheme-" + $r.key }
+  | append (
+    $data
+    | get palette
+    | ensure-base24
+    | transpose key value
+    | update key {|r| $r.key + "-hex" }
+    | update value {|r| $r.value | str trim -c "#" } 
+  )
+  | transpose -r -d
+  | to json
+}
+
 def pastel_lighten [hex:string, amount:float] {
   let out = (pastel color $hex | pastel lighten $amount | pastel format hex | str trim)
   $out
@@ -53,21 +98,3 @@ def ensure-base24 []: record -> record {
   $out
 }
 
-def main [] {
-  let data = $in | from yaml
-
-  $data
-  | reject palette
-  | transpose key value
-  | update key {|r| "scheme-" + $r.key }
-  | append (
-    $data
-    | get palette
-    | ensure-base24
-    | transpose key value
-    | update key {|r| $r.key + "-hex" }
-    | update value {|r| $r.value | str trim -c "#" } 
-  )
-  | transpose -r -d
-  | to json
-}
