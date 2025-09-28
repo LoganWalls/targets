@@ -2,7 +2,6 @@ mod config;
 mod io;
 
 use std::fs::File;
-use std::io::BufWriter;
 use std::path::PathBuf;
 
 use anyhow::{Context, Result, anyhow};
@@ -46,10 +45,10 @@ fn main() -> Result<()> {
         .with_context(|| {
             format!("failed to create parent directory for output path: {out_path:?}")
         })?;
-        let file = File::create(&out_path)
+        let mut file = File::create(&out_path)
             .with_context(|| format!("failed to create file at output path: {out_path:?}"))?;
-        let mut writer = BufWriter::new(file);
-        template.render_data(&mut writer, &values)?;
+        template.render_data(&mut file, &values)?;
+        file.sync_all()?;
         target.run_hook()?;
     }
 
